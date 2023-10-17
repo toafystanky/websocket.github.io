@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Client</title>
+    <style>
+        /* Custom modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="message" placeholder="Enter a message">
+    <button onclick="sendMessage()">Send</button>
+    <div id="messages"></div>
+    
+    <!-- Custom modal for connection and ban messages -->
+    <div class="modal" id="myModal">
+        <div class="modal-content">
+            <p id="modalMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        const serverUri = "ws://localhost:6969"; // Change this to your server address
+
+        const websocket = new WebSocket(serverUri);
+
+        // A variable to track whether the user is banned
+        let isBanned = false;
+
+        websocket.onopen = (event) => {
+            console.log("Connected to the server");
+        };
+
+        websocket.onmessage = (event) => {
+            const messagesDiv = document.getElementById("messages");
+            const message = event.data;
+
+            if (message === "You are already connected elsewhere." || message === "You are permanently banned.") {
+                displayModal(message);
+                if (message === "You are permanently banned.") {
+                    isBanned = true;
+                }
+            } else {
+                const sanitizedMessage = escapeHtml(message);
+                messagesDiv.insertAdjacentHTML("afterbegin", `<p>${sanitizedMessage}</p>`);
+            }
+        };
+
+        websocket.onclose = (event) => {
+            console.log("Connection closed");
+        };
+
+        function sendMessage() {
+            const messageInput = document.getElementById("message");
+            const message = messageInput.value;
+
+            if (message.toLowerCase().includes("rum")) {
+                if (isBanned) {
+                    displayModal("You are permanently banned.");
+                } else {
+                    // Send the message and check for bans on the server
+                    websocket.send(message);
+                }
+            } else {
+                // Send the message
+                websocket.send(message);
+            }
+
+            // Display the sent message on the page
+            const messagesDiv = document.getElementById("messages");
+            const sanitizedMessage = escapeHtml(message);
+            messagesDiv.insertAdjacentHTML("afterbegin", `<p><strong>You:</strong> ${sanitizedMessage}</p>`);
+            messageInput.value = "";
+        }
+
+        // Function to escape HTML special characters
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+
+        // Display the custom modal with a message
+        function displayModal(message) {
+            const modal = document.getElementById("myModal");
+            const modalMessage = document.getElementById("modalMessage");
+            modalMessage.textContent = message;
+            modal.style.display = "block";
+        }
+    </script>
+</body>
+</html>
