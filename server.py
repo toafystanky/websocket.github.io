@@ -43,10 +43,10 @@ async def echo(websocket, path):
                 if client['websocket'] != websocket:
                     await client['websocket'].send(f"Client {client_id}: {message}")
 
-          if "rum" in message.lower():
-                banned_clients.add(client_ip)
-                await websocket.send("You are permanently banned.")
-                await websocket.close()
+                if "rum" in message.lower():
+                    banned_clients.add(client_ip)
+                    await websocket.send("You are permanently banned.")
+                    await websocket.close()
                 if client_id in connected:
                     del connected[client_id]
 
