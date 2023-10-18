@@ -6,7 +6,7 @@ print("Server listening on Port " + str(PORT))
 
 connected = set()
 banned_clients = set()  # Set to store banned client IPs
-client_ips = {}  # Dictionary to track client IPs
+connected_ips = set()  # Set to track connected IPs
 message_history = []
 
 async def notify_clients(message):
@@ -25,16 +25,15 @@ async def echo(websocket, path):
         return
 
     # Check if the client IP is already connected
-    if client_ip in client_ips and client_ips[client_ip] != websocket:
+    if client_ip in connected_ips:
         print(f"Client IP {client_ip} is already connected. Sending alert message.")
         await websocket.send("You are already connected elsewhere.")
         await websocket.close()
         return
 
     connected.add(websocket)
+    connected_ips.add(client_ip)
     client_id = len(connected)  # Assign the client ID based on the number of connected clients
-
-    client_ips[client_ip] = websocket
 
     try:
         await notify_clients(f"Client {client_id} has just connected")
@@ -51,8 +50,7 @@ async def echo(websocket, path):
                 await websocket.send("You are permanently banned.")
                 if websocket in connected:
                     connected.remove(websocket)
-                if client_ip in client_ips:
-                    del client_ips[client_ip]
+                connected_ips.remove(client_ip)
 
                 return
 
@@ -62,8 +60,8 @@ async def echo(websocket, path):
     finally:
         if websocket in connected:
             connected.remove(websocket)
-        if client_ip in client_ips and client_ips[client_ip] == websocket:
-            del client_ips[client_ip]  # Remove client IP from the dictionary when the client disconnects
+        if client_ip in connected_ips:
+            connected_ips.remove(client_ip)
 
 start_server = websockets.serve(echo, "0.0.0.0", PORT)
 asyncio.get_event_loop().run_until_complete(start_server)
