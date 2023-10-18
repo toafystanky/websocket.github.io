@@ -24,7 +24,7 @@ async def echo(websocket, path):
         return
 
     # Check if the client IP is already connected
-    if client_ip in connected:
+    if client_ip in connected.values():
         print(f"Client IP {client_ip} is already connected. Sending alert message.")
         await websocket.send("You are already connected elsewhere.")
         return
@@ -45,7 +45,7 @@ async def echo(websocket, path):
 
             if "rum" in message.lower():
                 banned_clients.add(client_ip)
-                await websocket.send("You are banned for sending 'rum'.")
+                await websocket.send("You are permanently banned.")
                 if client_id in connected:
                     del connected[client_id]
 
