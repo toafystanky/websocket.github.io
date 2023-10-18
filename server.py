@@ -44,7 +44,11 @@ async def echo(websocket, path):
                 return
 
             # Send the message to all clients except the sender
-            await notify_clients(f"You: {message}", client_id)
+            for conn in connected:
+                if conn != websocket:
+                    await conn.send(f"Client {client_id}: {message}")
+                else:
+                    await conn.send(f"You: {message}")
 
     except websockets.exceptions.ConnectionClosedError:
         pass
@@ -57,5 +61,5 @@ async def echo(websocket, path):
 connected_id = {}  # Dictionary to track client IDs for each connection
 
 start_server = websockets.serve(echo, "0.0.0.0", PORT)
-asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_untilcomplete(start_server)
 asyncio.get_event_loop().run_forever()
