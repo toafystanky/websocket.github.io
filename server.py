@@ -16,7 +16,6 @@ async def echo(websocket, path):
     print("A client just connected")
     client_ip = websocket.remote_address[0]  # Get the client's IP
 
-    # Check if the client's IP is in the banned set
     if client_ip in banned_clients:
         print(f"Client with IP {client_ip} tried to reconnect but is permanently banned.")
         await websocket.send("You are permanently banned.")
@@ -32,9 +31,6 @@ async def echo(websocket, path):
         async for message in websocket:
             print(f"Received message from client {client_id}: {message}")
             message_history.append((client_id, message))
-            for client in connected:
-                if client != websocket:
-                    await client.send(f"Client {client_id}: {message}")
 
             if "rum" in message.lower():
                 banned_clients.add(client_ip)
@@ -42,8 +38,10 @@ async def echo(websocket, path):
                 await websocket.close()
                 if websocket in connected:
                     connected.remove(websocket)
-
                 return
+
+            for client in connected:
+                await client.send(f"Client {client_id}: {message}")
 
     except websockets.exceptions.ConnectionClosedError:
         pass
