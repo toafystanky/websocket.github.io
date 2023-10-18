@@ -24,7 +24,7 @@ async def echo(websocket, path):
         return
 
     # Check if the client IP is already connected
-    if client_ip in connected.values():
+    if client_ip in [client['ip'] for client in connected.values()]:
         print(f"Client IP {client_ip} is already connected. Sending alert message.")
         await websocket.send("You are already connected elsewhere.")
         return
