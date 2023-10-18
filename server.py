@@ -1,6 +1,10 @@
 import asyncio
 import websockets
 
+PORT = 6969
+print("Server listening on Port " + str(PORT))
+
+
 connected = set()
 banned_clients = set()  # Set to store banned client IPs
 client_ips = {}  # Dictionary to track client IPs
@@ -53,6 +57,6 @@ async def echo(websocket, path):
             del client_ips[client_ip]  # Remove client IP from the dictionary when the client disconnects
 
 
-start_server = websockets.serve(echo, "0.0.0.0", 8080)
+start_server = websockets.serve(echo, "0.0.0.0", PORT)
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
