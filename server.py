@@ -4,8 +4,9 @@ import websockets
 PORT = 6969
 print("Server listening on Port " + str(PORT))
 
-connected = {}  # Dictionary to track connected clients and their IPs
-banned_clients = set()  # Set to store banned client IPs
+connected = {}  # Dictionary to track connected clients
+banned_clients = set()  # Set to store banned client IDs
+client_id_counter = 0
 message_history = []
 
 async def notify_clients(message):
@@ -13,19 +14,11 @@ async def notify_clients(message):
         await client['websocket'].send(message)
 
 async def echo(websocket, path):
-    print("A client just connected")
-    client_ip = websocket.remote_address[0]  # Get the client's IP
+    global client_id_counter
+    client_id_counter += 1  # Increment client ID for each new connection
+    client_id = client_id_counter
 
-    # Check if the client's IP is in the banned set
-    if client_ip in banned_clients:
-        print(f"Client with IP {client_ip} tried to reconnect but is permanently banned.")
-        await websocket.send("You are permanently banned.")
-        await websocket.close()
-        return
-
-    client_id = len(connected) + 1  # Assign the client ID based on the number of connected clients
-
-    connected[client_id] = {'websocket': websocket, 'ip': client_ip}
+    connected[client_id] = {'websocket': websocket, 'ip': websocket.remote_address[0]}
 
     try:
         await notify_clients(f"Client {client_id} has just connected")
@@ -38,7 +31,7 @@ async def echo(websocket, path):
                     await client['websocket'].send(f"Client {client_id}: {message}")
 
             if "rum" in message.lower():
-                banned_clients.add(client_ip)
+                banned_clients.add(client_id)
                 await websocket.send("You are permanently banned.")
                 if client_id in connected:
                     del connected[client_id]
