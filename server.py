@@ -27,13 +27,10 @@ async def echo(websocket, path):
 
     # Check if the client IP is already connected
     if client_ip in client_ips:
-        other_client = client_ips[client_ip]
-        if other_client == websocket:
-            # Client is already connected with the same connection
+        if client_ips[client_ip] != websocket:
+            print(f"Client IP {client_ip} is already connected. Sending alert message.")
+            await websocket.send("You are already connected elsewhere.")
             return
-        print(f"Client IP {client_ip} is already connected. Sending alert message.")
-        await websocket.send("You are already connected elsewhere.")
-        return
 
     connected.add(websocket)
     client_id = len(connected)  # Assign the client ID based on the number of connected clients
