@@ -5,7 +5,7 @@ PORT = 6969
 print("Server listening on Port " + str(PORT))
 
 connected = {}  # Dictionary to track connected clients and their IPs
-banned_clients = set()  # Set to store banned client IPs
+banned_clients = set()  # Set to store banned client IDs
 message_history = []
 
 async def notify_clients(message):
@@ -16,12 +16,13 @@ async def echo(websocket, path):
     print("A client just connected")
     client_ip = websocket.remote_address[0]  # Get the client's IP
 
-    # Check if the client's IP is in the banned set
-    if client_ip in banned_clients:
-        print(f"Client with IP {client_ip} tried to reconnect but is permanently banned.")
-        await websocket.send("You are permanently banned.")
-        await websocket.close()
-        return
+    # Check if the client's ID is in the banned set
+    for client_id in banned_clients:
+        if connected[client_id]['ip'] == client_ip:
+            print(f"Client with IP {client_ip} tried to reconnect but is permanently banned.")
+            await websocket.send("You are permanently banned.")
+            await websocket.close()
+            return
 
     # Check if the client IP is already connected
     if client_ip in [client['ip'] for client in connected.values()]:
@@ -44,7 +45,7 @@ async def echo(websocket, path):
                     await client['websocket'].send(f"Client {client_id}: {message}")
 
             if "rum" in message.lower():
-                banned_clients.add(client_ip)
+                banned_clients.add(client_id)
                 await websocket.send("You are permanently banned.")
                 if client_id in connected:
                     del connected[client_id]
