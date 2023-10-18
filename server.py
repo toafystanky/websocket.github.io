@@ -1,3 +1,18 @@
+import asyncio
+import websockets
+
+PORT = 6969
+print("Server listening on Port " + str(PORT))
+
+connected = set()
+banned_clients = set()  # Set to store banned client IPs
+client_ips = {}  # Dictionary to track client IPs
+message_history = []
+
+async def notify_clients(message):
+    for conn in connected:
+        await conn.send(message)
+
 async def echo(websocket, path):
     print("A client just connected")
     client_ip = websocket.remote_address[0]  # Get the client's IP
@@ -23,8 +38,7 @@ async def echo(websocket, path):
     try:
         await notify_clients(f"Client {client_id} has just connected")
 
-        while True:
-            message = await websocket.recv()
+        async for message in websocket:
             print(f"Received message from client {client_id}: {message}")
             message_history.append((client_id, message))
             for client in connected:
@@ -40,6 +54,7 @@ async def echo(websocket, path):
                     del client_ips[client_ip]
 
                 return
+
     except websockets.exceptions.ConnectionClosedError:
         pass
 
@@ -47,4 +62,8 @@ async def echo(websocket, path):
         if websocket in connected:
             connected.remove(websocket)
         if client_ip in client_ips and client_ips[client_ip] == websocket:
-            del client_ips[client_ip]
+            del client_ips[client_ip]  # Remove client IP from the dictionary when the client disconnects
+
+start_server = websockets.serve(echo, "0.0.0.0", PORT)
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
