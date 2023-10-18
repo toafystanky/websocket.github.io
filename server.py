@@ -7,7 +7,6 @@ print("Server listening on Port " + str(PORT))
 connected = set()
 banned_clients = set()  # Set to store banned client IPs
 client_ids = {}
-client_ips = {}  # Dictionary to track client IPs
 message_history = []
 
 async def notify_clients(message):
@@ -25,17 +24,17 @@ async def echo(websocket, path):
         await websocket.close()
         return
 
-    # Check if the client IP is already connected
-    if client_ip in client_ips:
-        print(f"Client IP {client_ip} is already connected. Sending alert message.")
-        await websocket.send("You are already connected elsewhere.")
-        return
+    # Check if the client is already connected and disconnect the previous client
+    if client_ip in client_ids:
+        old_client = client_ids[client_ip]
+        print(f"Client IP {client_ip} is already connected as client {old_client}. Disconnecting the old client.")
+        await client_ids[client_ip].send("You are already connected elsewhere.")
+        await client_ids[client_ip].close()
 
     connected.add(websocket)
     client_id = len(connected)  # Assign the client ID based on the number of connected clients
 
-    client_ids[websocket] = client_id
-    client_ips[client_ip] = websocket
+    client_ids[client_ip] = websocket
 
     try:
         await notify_clients(f"Client {client_id} has just connected")
@@ -52,8 +51,8 @@ async def echo(websocket, path):
                 await websocket.send("You are permanently banned.")
                 if websocket in connected:
                     connected.remove(websocket)
-                if client_ip in client_ips:
-                    del client_ips[client_ip]
+                if client_ip in client_ids:
+                    del client_ids[client_ip]
 
                 return
 
@@ -63,6 +62,8 @@ async def echo(websocket, path):
     finally:
         if websocket in connected:
             connected.remove(websocket)
+        if client_ip in client_ids:
+            del client_ids[client_ip]
 
 start_server = websockets.serve(echo, "0.0.0.0", PORT)
 asyncio.get_event_loop().run_until_complete(start_server)
