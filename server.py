@@ -6,7 +6,6 @@ print("Server listening on Port " + str(PORT))
 
 connected = {}  # Dictionary to track connected clients
 banned_clients = set()  # Set to store banned client IDs
-client_id_counter = 0
 message_history = []
 
 async def notify_clients(message):
@@ -14,11 +13,33 @@ async def notify_clients(message):
         await client['websocket'].send(message)
 
 async def echo(websocket, path):
-    global client_id_counter
-    client_id_counter += 1  # Increment client ID for each new connection
-    client_id = client_id_counter
+    client_ip = websocket.remote_address[0]  # Get the client's IP
 
-    connected[client_id] = {'websocket': websocket, 'ip': websocket.remote_address[0]}
+    # Check if the client's IP is already connected
+    for client_id, client_data in connected.items():
+        if client_data['ip'] == client_ip:
+            await websocket.send("You are already connected elsewhere.")
+            await websocket.close()
+            return
+
+    # Check if the client's IP is in the banned set
+    if client_ip in banned_clients:
+        print(f"Client with IP {client_ip} tried to reconnect but is permanently banned.")
+        await websocket.send("You are permanently banned.")
+        await websocket.close()
+        return
+
+    # Check if the client ID is already connected
+    for client_id, client_data in connected.items():
+        if client_data['websocket'] == websocket:
+            print(f"Client {client_id} tried to reconnect but is already connected. Sending alert message.")
+            await websocket.send("You are already connected elsewhere.")
+            return
+
+    # Assign a client ID for the new connection
+    client_id = len(connected) + 1
+
+    connected[client_id] = {'websocket': websocket, 'ip': client_ip}
 
     try:
         await notify_clients(f"Client {client_id} has just connected")
