@@ -40,8 +40,7 @@ async def echo(websocket, path):
                     connected.remove(websocket)
                 return
 
-            for client in connected:
-                await client.send(f"Client {client_id}: {message}")
+
 
     except websockets.exceptions.ConnectionClosedError:
         pass
