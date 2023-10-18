@@ -8,9 +8,11 @@ connected = set()
 banned_clients = set()  # Set to store banned client IPs
 message_history = []
 
-async def notify_clients(message):
+async def notify_clients(message, sender_id=None):
     for conn in connected:
-        await conn.send(message)
+        # Don't send the message back to the sender
+        if sender_id is None or connected_id[conn] != sender_id:
+            await conn.send(message)
 
 async def echo(websocket, path):
     print("A client just connected")
@@ -24,6 +26,7 @@ async def echo(websocket, path):
 
     connected.add(websocket)
     client_id = len(connected)  # Assign the client ID based on the number of connected clients
+    connected_id[websocket] = client_id  # Store the client ID for this connection
 
     try:
         await notify_clients(f"Client {client_id} has just connected")
@@ -40,14 +43,18 @@ async def echo(websocket, path):
                     connected.remove(websocket)
                 return
 
-
+            # Send the message to all clients except the sender
+            await notify_clients(f"You: {message}", client_id)
 
     except websockets.exceptions.ConnectionClosedError:
         pass
 
     finally:
         if websocket in connected:
+            del connected_id[websocket]
             connected.remove(websocket)
+
+connected_id = {}  # Dictionary to track client IDs for each connection
 
 start_server = websockets.serve(echo, "0.0.0.0", PORT)
 asyncio.get_event_loop().run_until_complete(start_server)
